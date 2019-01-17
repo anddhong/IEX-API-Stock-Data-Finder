@@ -4,7 +4,7 @@ import sys,requests
 import pandas as pd
 import time
 from datetime import date,timedelta
-import socket
+#import socket
 
 pd.set_option('max_columns',5)
 
@@ -25,7 +25,7 @@ class stock_info(object):
 		t=time.strptime(str(self.date),'%Y%m%d')
 		newdate=date(t.tm_year,t.tm_mon,t.tm_mday)+timedelta(1)
 		next =  newdate.strftime('%Y%m%d')
-		return int(next)
+		return next
 
 	def get_data(self,data_type):
 		''' collects minute data from current day '''
@@ -39,6 +39,7 @@ class stock_info(object):
 			&types=quote,news,chart&range=1m&last=5' % (self.ticker,self.ticker2)
 		if data_type=='today':
 			s='https://api.iextrading.com/1.0/stock/%s/quote' % self.ticker
+		print(s)
 		data=requests.get(s).json()
 		return data
 
@@ -46,7 +47,6 @@ class stock_info(object):
 		'''creates pandas Data Frame of minute data from start date to end date'''
 
 		self.date=start
-
 		data=self.get_data('date')
 		if end!=0:
 			while self.date<=end:
@@ -73,28 +73,29 @@ class stock_info(object):
 		return df
 
 	def return_today_data(self):
-		data=[self.get_data('today')]
-		df=pd.DataFrame(data)
+		'''Grabs stock data for today'''
+		data=self.get_data('today')
+		df=pd.DataFrame([data])
 		df=df.set_index('symbol')
-		return data
-
-'''
-def commandLine():
-	inputs=sys.stdin.readline()
-	company=inputs.split()[0]
-	dateRange=inputs.split()[1:]
-	print(company.create_minute_dataset(dateRange))
-commandLine()
-'''
+		return df
 
 if __name__=='__main__':
-	#data = sys.stdin.read()
-	data = "FB".split(',')
-	stock=stock_info(data[0])
+	print("Type in Stock Ticker. For more information, refer to readme")
+	data = sys.stdin.readline().split(',')
+	#example: data = "FB,20190101,20190105".split(',')
+	stock=stock_info(data[0].strip())
 	if len(data)==1:
+		#today's data
 		stockinfo=stock.return_today_data()
-	else if len(data)==2:
-		stockinfo =stock.created_ranged_dataset(data)
+	elif len(data)==3:
+		#minute data for one day
+		stockinfo = stock.create_minute_dataset(data[1].strip(),data[2].strip())
+	elif len(data[1].strip())==8 and len(data)==2:
+		#minute data for a range of days
+		stockinfo = stock.create_minute_dataset(data[1].strip())
+	elif len(data)==2:
+		#daily data for specified range
+		stockinfo =stock.create_ranged_dataset(data[1].strip())
 	else:
-		stockinfo = stock.
-	print(stock)
+		raise ValueError("Expect 1,2, or 3 arguments")
+	print(stockinfo)
